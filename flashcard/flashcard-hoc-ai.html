@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flashcard Học AI — App thứ 3 của Anh</title>
+
+<!-- PHẦN 2: CSS — trang trí -->
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; background: #f0f4f8; color: #1a202c; margin: 0; padding: 24px 16px 48px; }
+  .hop { max-width: 680px; margin: 0 auto; background: #fff; border-radius: 16px; padding: 28px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+  h1 { font-size: 26px; margin: 0 0 6px; }
+  .mo-ta { color: #5a6b7f; line-height: 1.55; margin: 0 0 18px; }
+  .tien-do { font-weight: 700; text-align: center; margin-bottom: 6px; }
+  .thanh-tien-do { height: 10px; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin-bottom: 18px; }
+  #thanhDo { height: 100%; width: 0%; background: #16a34a; transition: width 0.3s; }
+  /* Thẻ flashcard: bấm vào là lật mặt. Thuật toán lật dùng CSS transform, JS chỉ đổi class. */
+  .the { min-height: 230px; border-radius: 16px; padding: 26px; cursor: pointer; user-select: none;
+         display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .the.mat-truoc { background: #dbeafe; border: 2px solid #93c5fd; }
+  .the.mat-sau { background: #dcfce7; border: 2px solid #86efac; }
+  .the .nhan-the { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #475569; margin-bottom: 10px; }
+  .the .thuat-ngu { font-size: 30px; font-weight: 800; line-height: 1.25; }
+  .the .dinh-nghia { font-size: 17px; line-height: 1.6; }
+  .the .vi-du { font-size: 14px; color: #475569; font-style: italic; margin-top: 14px; line-height: 1.5; }
+  .the .goi-y-lat { font-size: 13px; color: #64748b; margin-top: 16px; }
+  .hang-nut { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; justify-content: center; }
+  button { border: none; border-radius: 10px; padding: 11px 16px; font: inherit; font-weight: 700; cursor: pointer; }
+  .nut-chinh { background: #2563eb; color: #fff; }
+  .nut-xanh { background: #16a34a; color: #fff; }
+  .nut-cam { background: #ea580c; color: #fff; }
+  .nut-phu { background: #e2e8f0; color: #1a202c; }
+  button:hover { opacity: 0.88; }
+  .che-do { text-align: center; margin-top: 14px; font-size: 14px; }
+  .che-do input { width: 16px; height: 16px; vertical-align: middle; }
+  hr { border: none; border-top: 1px solid #e2e8f0; margin: 26px 0 6px; }
+  label.nhan { display: block; font-weight: 700; margin: 14px 0 4px; }
+  input[type="text"], textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #cbd5e0; border-radius: 10px; font: inherit; }
+  textarea { min-height: 64px; resize: vertical; }
+  #thongBao { min-height: 22px; margin-top: 12px; color: #15803d; font-weight: 600; text-align: center; }
+  .chan-trang { margin-top: 20px; font-size: 13px; color: #8496ab; line-height: 1.65; text-align: center; }
+</style>
+</head>
+<body>
+
+<!-- PHẦN 1: HTML — khung giao diện -->
+<div class="hop">
+  <h1>Flashcard Học AI</h1>
+  <p class="mo-ta">Cách học: đọc mặt trước, <b>tự nhẩm đáp án trong đầu</b>, rồi bấm vào thẻ để lật xem đúng không. Thuộc rồi thì bấm “Đã thuộc”, chưa thì bấm “Chưa thuộc” để thẻ đó quay lại ôn tiếp.</p>
+
+  <div class="tien-do" id="tienDo">Đang tải bộ thẻ...</div>
+  <div class="thanh-tien-do"><div id="thanhDo"></div></div>
+
+  <div class="the mat-truoc" id="theHienThi" title="Bấm vào thẻ để lật">
+    <div class="nhan-the" id="nhanThe">Thuật ngữ</div>
+    <div class="thuat-ngu" id="noiDungThe"></div>
+    <div class="goi-y-lat" id="goiYLat">Bấm vào thẻ để lật xem đáp án</div>
+  </div>
+
+  <div class="hang-nut">
+    <button class="nut-phu" id="nutTruoc">← Thẻ trước</button>
+    <button class="nut-chinh" id="nutLat">Lật thẻ</button>
+    <button class="nut-phu" id="nutSau">Thẻ sau →</button>
+  </div>
+  <div class="hang-nut">
+    <button class="nut-xanh" id="nutThuoc">✓ Đã thuộc</button>
+    <button class="nut-cam" id="nutChuaThuoc">✗ Chưa thuộc</button>
+    <button class="nut-phu" id="nutXao">Xáo trộn</button>
+  </div>
+
+  <div class="che-do">
+    <label><input type="checkbox" id="chiChuaThuoc"> Chỉ ôn những thẻ chưa thuộc</label>
+    &nbsp;&nbsp;<button class="nut-phu" id="nutDatLai">Đặt lại tiến độ</button>
+    <button class="nut-phu" id="nutXoaTuThem" style="display:none">Xoá thẻ tự thêm này</button>
+  </div>
+
+  <hr>
+  <h2 style="font-size:18px; margin:0">Thêm thẻ của riêng Anh</h2>
+  <label class="nhan" for="oThuatNguMoi">Thuật ngữ mới:</label>
+  <input type="text" id="oThuatNguMoi" placeholder="Ví dụ: Overfitting">
+  <label class="nhan" for="oDinhNghiaMoi">Định nghĩa dễ hiểu:</label>
+  <textarea id="oDinhNghiaMoi" placeholder="Ví dụ: Model học thuộc lòng dữ liệu luyện tập nên gặp dữ liệu mới là làm kém đi."></textarea>
+  <div class="hang-nut" style="justify-content:flex-start">
+    <button class="nut-chinh" id="nutThemThe">Thêm thẻ</button>
+  </div>
+  <div id="thongBao"></div>
+
+  <p class="chan-trang">
+    Phím tắt: ← → chuyển thẻ, phím cách lật thẻ.<br>
+    Tiến độ và thẻ tự thêm được lưu ngay trên trình duyệt của Anh (localStorage) — tắt máy mở lại vẫn còn.
+  </p>
+</div>
+
+<!-- PHẦN 3: JAVASCRIPT — bộ não của app -->
+<script>
+  // ==========================================================
+  // BỘ THẺ MẪU: mỗi thẻ là 1 "đối tượng" (object) có id, thuật ngữ,
+  // định nghĩa và ví dụ. Muốn thêm thẻ mẫu, Anh chỉ cần thêm 1 dòng
+  // tương tự vào danh sách này.
+  // ==========================================================
+  const THE_MAC_DINH = [
+    { id: "prompt", thuatNgu: "Prompt", dinhNghia: "Câu lệnh hoặc yêu cầu Anh viết ra để hướng dẫn AI làm việc. Prompt càng rõ vai trò, nhiệm vụ, ngữ cảnh và định dạng, kết quả càng đúng ý.", viDu: "Ví dụ: “Bạn là giáo viên kiên nhẫn. Hãy giải thích AI cho người mới bằng 1 ví dụ đời thường.”" },
+    { id: "llm", thuatNgu: "LLM (Mô hình ngôn ngữ lớn)", dinhNghia: "Mô hình AI được huấn luyện trên khối lượng văn bản khổng lồ để hiểu và tạo ra ngôn ngữ tự nhiên. Gemini, ChatGPT, Claude đều là LLM.", viDu: "Ví dụ: khi Anh chat với Gemini, chính LLM đang đoán từ tiếp theo phù hợp nhất để trả lời." },
+    { id: "token", thuatNgu: "Token", dinhNghia: "Đơn vị nhỏ mà AI dùng để “đọc” văn bản. Một từ có thể là 1 token, cũng có thể bị chẻ thành nhiều token. API tính tiền theo số token, không tính theo số chữ.", viDu: "Ví dụ: từ “không” trong tiếng Việt có thể là 1 token, còn một từ tiếng Anh dài có thể là 2–3 token." },
+    { id: "hallucination", thuatNgu: "Ảo giác (Hallucination)", dinhNghia: "Hiện tượng AI trả lời rất tự tin nhưng nội dung bịa ra: số liệu, nguồn trích dẫn hay sự kiện không có thật. Đây là lý do phải kiểm chứng, nhất là với số liệu.", viDu: "Ví dụ: AI bịa ra một cuốn sách không tồn tại và trích dẫn nó như thật." },
+    { id: "rag", thuatNgu: "RAG", dinhNghia: "Kỹ thuật cho AI tra cứu tài liệu thật của Anh trước khi trả lời, thay vì chỉ dựa vào kiến thức đã học. Nhờ vậy câu trả lời gắn với dữ liệu riêng và ít bịa hơn.", viDu: "Ví dụ: chatbot công ty tra cứu sổ tay nội bộ rồi mới trả lời nhân viên." },
+    { id: "finetune", thuatNgu: "Fine-tuning (Tinh chỉnh)", dinhNghia: "Huấn luyện thêm một model có sẵn bằng dữ liệu riêng của một lĩnh vực, để nó giỏi đúng việc đó hơn — ví dụ viết đúng giọng văn của một thương hiệu.", viDu: "Ví dụ: tinh chỉnh model bằng 500 bài đăng cũ để nó viết caption đúng phong cách Page của Anh." },
+    { id: "agent", thuatNgu: "AI Agent", dinhNghia: "AI không chỉ trả lời 1 câu mà tự lập kế hoạch và làm chuỗi việc để đạt mục tiêu: tìm thông tin, dùng công cụ, kiểm tra kết quả, sửa sai và làm tiếp.", viDu: "Ví dụ: agent nhận lệnh “tổng hợp tin AI sáng nay” rồi tự tìm tin, lọc tin, soạn bài và đưa Anh duyệt." },
+    { id: "apikey", thuatNgu: "API key", dinhNghia: "Một chuỗi bí mật dùng để xác thực khi app của Anh gọi sang dịch vụ AI. Ai có key này thì dùng được quota của Anh, nên tuyệt đối không đăng key lên GitHub.", viDu: "Nhớ app Bot Quét Bảo Vệ Code: nó sinh ra để bắt chính những key bị lỡ viết thẳng vào code." },
+    { id: "vibecoding", thuatNgu: "Vibe Coding", dinhNghia: "Cách làm phần mềm bằng cách mô tả ý muốn bằng ngôn ngữ tự nhiên cho AI viết code, rồi chạy thử và sửa qua phản hồi — thay vì tự gõ từng dòng code. Thuật ngữ do Andrej Karpathy đặt ra tháng 2/2025.", viDu: "Ví dụ: 3 app Anh vừa làm đều đi theo hướng này: Anh mô tả, AI viết, Anh chạy thử và góp ý." },
+    { id: "inference", thuatNgu: "Inference (Suy luận)", dinhNghia: "Giai đoạn model đã học xong được đem ra phục vụ người dùng thật: nhận yêu cầu và sinh câu trả lời. DeepInfer chính là phần mềm phục vụ model ở quy mô lớn của DeepSeek.", viDu: "Ví dụ: mỗi lần Anh gửi 1 câu hỏi cho Gemini, phía sau là hàng nghìn lượt inference đang chạy." }
+  ];
+
+  // ==========================================================
+  // TRẠNG THÁI CỦA APP — bài học mới của app này:
+  // "trạng thái" là các biến nhớ app đang ở đâu: thẻ thứ mấy, đang
+  // lật mặt nào, thẻ nào đã thuộc, đang lọc hay không.
+  // ==========================================================
+  let tatCaThe = THE_MAC_DINH.slice();
+  let thuTu = THE_MAC_DINH.map(function (t, i) { return i; }); // thứ tự thẻ đang hiển thị
+  let viTri = 0;          // đang ở thẻ thứ mấy trong thuTu
+  let dangLatSau = false; // false = mặt trước, true = mặt sau
+  let chiChuaThuoc = false;
+
+  // Đọc tiến độ đã lưu (nếu có) từ localStorage — bộ nhớ của trình duyệt
+  function docDaThuoc() {
+    try { return JSON.parse(localStorage.getItem("flashcard_ai_daThuoc") || "[]"); } catch (e) { return []; }
+  }
+  function luuDaThuoc(danhSach) {
+    localStorage.setItem("flashcard_ai_daThuoc", JSON.stringify(danhSach));
+  }
+  function docTheTuThem() {
+    try { return JSON.parse(localStorage.getItem("flashcard_ai_tuThem") || "[]"); } catch (e) { return []; }
+  }
+  function luuTheTuThem(danhSach) {
+    localStorage.setItem("flashcard_ai_tuThem", JSON.stringify(danhSach));
+  }
+
+  // Nạp thẻ tự thêm vào bộ thẻ chung
+  docTheTuThem().forEach(function (t) { tatCaThe.push(t); });
+  thuTu = tatCaThe.map(function (t, i) { return i; });
+
+  // Thuật toán xáo trộn Fisher-Yates: đi từ cuối danh sách về đầu,
+  // mỗi bước đổi chỗ phần tử hiện tại với 1 phần tử ngẫu nhiên phía trước nó.
+  function xaoTron(mang) {
+    const ketQua = mang.slice();
+    for (let i = ketQua.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tam = ketQua[i]; ketQua[i] = ketQua[j]; ketQua[j] = tam;
+    }
+    return ketQua;
+  }
+
+  // Danh sách thẻ đang ôn (có thể đã lọc chỉ còn thẻ chưa thuộc)
+  function danhSachDangOn() {
+    const daThuoc = docDaThuoc();
+    let ds = thuTu.map(function (i) { return tatCaThe[i]; });
+    if (chiChuaThuoc) ds = ds.filter(function (t) { return daThuoc.indexOf(t.id) === -1; });
+    return ds;
+  }
+
+  function theHienTai() {
+    const ds = danhSachDangOn();
+    if (!ds.length) return null;
+    if (viTri >= ds.length) viTri = 0;
+    return ds[viTri];
+  }
+
+  // Vẽ lại thẻ và thanh tiến độ lên màn hình
+  function veLai() {
+    const the = theHienTai();
+    const oThe = document.getElementById("theHienThi");
+    const ds = danhSachDangOn();
+    const daThuoc = docDaThuoc();
+    const tongSo = tatCaThe.length;
+    const soThuoc = tatCaThe.filter(function (t) { return daThuoc.indexOf(t.id) !== -1; }).length;
+
+    document.getElementById("tienDo").textContent =
+      ds.length ? ("Thẻ " + (viTri + 1) + " / " + ds.length + "  •  Đã thuộc " + soThuoc + " / " + tongSo + " thẻ") : "Không còn thẻ nào trong chế độ này.";
+    document.getElementById("thanhDo").style.width = (tongSo ? Math.round(soThuoc / tongSo * 100) : 0) + "%";
+
+    if (!the) {
+      document.getElementById("nhanThe").textContent = "Xong rồi!";
+      document.getElementById("noiDungThe").textContent = "";
+      oThe.querySelector(".vi-du")?.remove?.();
+      document.getElementById("goiYLat").textContent = "Anh đã thuộc hết thẻ trong chế độ này. Bỏ tick “Chỉ ôn những thẻ chưa thuộc” để ôn lại toàn bộ, hoặc bấm Đặt lại tiến độ.";
+      document.getElementById("nutXoaTuThem").style.display = "none";
+      return;
+    }
+
+    const laTheTuThem = the.id.indexOf("tu-") === 0;
+    document.getElementById("nutXoaTuThem").style.display = laTheTuThem ? "" : "none";
+    oThe.className = "the " + (dangLatSau ? "mat-sau" : "mat-truoc");
+    document.getElementById("nhanThe").textContent = dangLatSau ? "Đáp án" : "Thuật ngữ";
+
+    // Xóa ví dụ cũ (nếu có) rồi vẽ nội dung mới
+    const viDuCu = oThe.querySelector(".vi-du");
+    if (viDuCu) viDuCu.remove();
+
+    if (!dangLatSau) {
+      document.getElementById("noiDungThe").textContent = the.thuatNgu;
+      document.getElementById("goiYLat").textContent = "Bấm vào thẻ để lật xem đáp án";
+    } else {
+      document.getElementById("noiDungThe").textContent = the.dinhNghia;
+      if (the.viDu) {
+        const oViDu = document.createElement("div");
+        oViDu.className = "vi-du";
+        oViDu.textContent = the.viDu;
+        oThe.appendChild(oViDu);
+      }
+      document.getElementById("goiYLat").textContent = "Đã thuộc chưa? Bấm nút bên dưới rồi sang thẻ tiếp theo.";
+    }
+  }
+
+  function sangThe(delta) {
+    const ds = danhSachDangOn();
+    if (!ds.length) return;
+    viTri = (viTri + delta + ds.length) % ds.length;
+    dangLatSau = false;
+    veLai();
+  }
+
+  function danhDauThuoc(daThuoc) {
+    const the = theHienTai();
+    if (!the) return;
+    let ds = docDaThuoc();
+    if (daThuoc) {
+      if (ds.indexOf(the.id) === -1) ds.push(the.id);
+    } else {
+      ds = ds.filter(function (id) { return id !== the.id; });
+    }
+    luuDaThuoc(ds);
+    sangThe(1);
+  }
+
+  function baoTin(noiDung) {
+    document.getElementById("thongBao").textContent = noiDung;
+  }
+
+  document.getElementById("theHienThi").addEventListener("click", function () { dangLatSau = !dangLatSau; veLai(); });
+  document.getElementById("nutLat").addEventListener("click", function () { dangLatSau = !dangLatSau; veLai(); });
+  document.getElementById("nutTruoc").addEventListener("click", function () { sangThe(-1); });
+  document.getElementById("nutSau").addEventListener("click", function () { sangThe(1); });
+  document.getElementById("nutThuoc").addEventListener("click", function () { danhDauThuoc(true); });
+  document.getElementById("nutChuaThuoc").addEventListener("click", function () { danhDauThuoc(false); });
+  document.getElementById("nutXao").addEventListener("click", function () {
+    thuTu = xaoTron(thuTu);
+    viTri = 0; dangLatSau = false;
+    baoTin("Đã xáo trộn thứ tự các thẻ. Ôn lại từ đầu nhé Anh.");
+    veLai();
+  });
+  document.getElementById("chiChuaThuoc").addEventListener("change", function (e) {
+    chiChuaThuoc = e.target.checked;
+    viTri = 0; dangLatSau = false;
+    veLai();
+  });
+  document.getElementById("nutDatLai").addEventListener("click", function () {
+    luuDaThuoc([]);
+    viTri = 0; dangLatSau = false;
+    baoTin("Đã đặt lại toàn bộ tiến độ. Bắt đầu vòng ôn mới nhé Anh.");
+    veLai();
+  });
+  document.getElementById("nutXoaTuThem").addEventListener("click", function () {
+    const the = theHienTai();
+    if (!the) return;
+    luuTheTuThem(docTheTuThem().filter(function (t) { return t.id !== the.id; }));
+    tatCaThe = tatCaThe.filter(function (t) { return t.id !== the.id; });
+    thuTu = tatCaThe.map(function (t, i) { return i; });
+    viTri = 0; dangLatSau = false;
+    baoTin("Đã xoá thẻ tự thêm.");
+    veLai();
+  });
+  document.getElementById("nutThemThe").addEventListener("click", function () {
+    const thuatNgu = document.getElementById("oThuatNguMoi").value.trim();
+    const dinhNghia = document.getElementById("oDinhNghiaMoi").value.trim();
+    if (!thuatNgu || !dinhNghia) { baoTin("Anh điền cả Thuật ngữ và Định nghĩa rồi hãy bấm Thêm thẻ nhé."); return; }
+    const theMoi = { id: "tu-" + Date.now(), thuatNgu: thuatNgu, dinhNghia: dinhNghia, viDu: "" };
+    const ds = docTheTuThem(); ds.push(theMoi); luuTheTuThem(ds);
+    tatCaThe.push(theMoi);
+    thuTu = tatCaThe.map(function (t, i) { return i; });
+    document.getElementById("oThuatNguMoi").value = "";
+    document.getElementById("oDinhNghiaMoi").value = "";
+    baoTin("Đã thêm thẻ “" + thuatNgu + "” vào bộ thẻ của Anh. Thẻ mới đã nằm trong vòng ôn.");
+    veLai();
+  });
+
+  // Phím tắt: mũi tên chuyển thẻ, phím cách lật thẻ
+  document.addEventListener("keydown", function (e) {
+    const dangGoChu = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA");
+    if (dangGoChu) return;
+    if (e.key === "ArrowRight") sangThe(1);
+    else if (e.key === "ArrowLeft") sangThe(-1);
+    else if (e.key === " ") { e.preventDefault(); dangLatSau = !dangLatSau; veLai(); }
+  });
+
+  veLai();
+</script>
+</body>
+</html>

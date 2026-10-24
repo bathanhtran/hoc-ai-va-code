@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prompt Builder 4 Phần v2 — Bản nâng cấp thông minh</title>
+
+<!-- ============================================================
+     PHẦN 2: CSS — trang trí giao diện
+     ============================================================ -->
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: #f0f4f8;
+    color: #1a202c;
+    margin: 0;
+    padding: 24px 16px 48px;
+  }
+  .hop {
+    max-width: 720px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 26px; margin: 0 0 6px; }
+  .phien-ban {
+    display: inline-block; background: #dcfce7; color: #15803d;
+    font-size: 12px; font-weight: 700; border-radius: 999px;
+    padding: 3px 10px; margin-bottom: 10px;
+  }
+  .mo-ta { color: #5a6b7f; margin: 0 0 8px; line-height: 1.5; }
+  label.nhan { display: block; font-weight: 700; margin: 18px 0 4px; }
+  .goi-y { color: #5a6b7f; font-size: 13px; margin: 0 0 6px; }
+  textarea, select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid #cbd5e0;
+    border-radius: 10px;
+    font: inherit;
+    background: #fff;
+  }
+  textarea { min-height: 60px; resize: vertical; }
+  textarea:focus, select:focus { outline: none; border-color: #2563eb; }
+  #ketQua { min-height: 260px; background: #f7fafc; }
+  .hai-cot { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  @media (max-width: 640px) { .hai-cot { grid-template-columns: 1fr; } }
+  .o-tick { display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; font-size: 14px; line-height: 1.45; }
+  .o-tick input { margin-top: 3px; width: 16px; height: 16px; }
+  .hang-nut { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+  button {
+    border: none; border-radius: 10px; padding: 11px 18px;
+    font: inherit; font-weight: 700; cursor: pointer;
+  }
+  .nut-chinh { background: #2563eb; color: #fff; }
+  .nut-phu { background: #e2e8f0; color: #1a202c; }
+  button:hover { opacity: 0.88; }
+  #thongBao { min-height: 22px; margin-top: 12px; color: #15803d; font-weight: 600; }
+  .chan-trang { margin-top: 26px; font-size: 13px; color: #8496ab; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     PHẦN 1: HTML — dựng khung giao diện
+     ============================================================ -->
+<div class="hop">
+  <span class="phien-ban">V2 — BẢN NÂNG CẤP</span>
+  <h1>Prompt Builder 4 Phần</h1>
+  <p class="mo-ta">Anh chỉ cần gõ ý chính ngắn gọn. App sẽ tự bồi thêm khung chuyên gia, yêu cầu chất lượng và quy tắc làm việc — prompt đầu ra dài và chặt chẽ hơn hẳn chữ Anh gõ vào.</p>
+
+  <label class="nhan" for="vaiTro">1. Vai trò — Anh muốn AI đóng vai ai?</label>
+  <p class="goi-y">Bỏ trống cũng được: app tự đặt “chuyên gia giàu kinh nghiệm trong đúng lĩnh vực của nhiệm vụ”.</p>
+  <textarea id="vaiTro" placeholder="Ví dụ: chuyên gia viết nội dung Facebook cho người Việt mới bắt đầu dùng AI"></textarea>
+
+  <label class="nhan" for="nhiemVu">2. Nhiệm vụ — Anh muốn AI làm gì? <span style="color:#dc2626">(bắt buộc, gõ ngắn cũng được)</span></label>
+  <textarea id="nhiemVu" placeholder="Ví dụ: viết caption bán áo thun"></textarea>
+
+  <label class="nhan" for="nguCanh">3. Ngữ cảnh — Thông tin nền AI cần biết</label>
+  <textarea id="nguCanh" placeholder="Ví dụ: áo thun cotton 250k, khách 20-35 tuổi, shop ở Hà Nội"></textarea>
+
+  <label class="nhan" for="dinhDang">4. Định dạng — Anh muốn nhận kết quả trông như thế nào?</label>
+  <textarea id="dinhDang" placeholder="Bỏ trống thì app tự chọn định dạng hợp với mục đích bên dưới"></textarea>
+
+  <label class="nhan">5. Chọn nhanh — app tự dịch các lựa chọn này thành yêu cầu trong prompt</label>
+  <div class="hai-cot">
+    <div>
+      <p class="goi-y">Mục đích</p>
+      <select id="mucDich">
+        <option value="tongQuat">Tổng quát</option>
+        <option value="baiFacebook">Viết bài Facebook</option>
+        <option value="captionBanHang">Viết caption bán hàng</option>
+        <option value="tomTat">Tóm tắt tài liệu / video</option>
+        <option value="yTuong">Lên ý tưởng</option>
+        <option value="giaiThich">Giải thích để học</option>
+      </select>
+    </div>
+    <div>
+      <p class="goi-y">Giọng văn</p>
+      <select id="giongVan">
+        <option value="Thân thiện, tự nhiên như nói chuyện với một người bạn">Thân thiện</option>
+        <option value="Chuyên nghiệp, đáng tin cậy, tránh khoa trương">Chuyên nghiệp</option>
+        <option value="Hài hước nhẹ nhàng, không lố, không đùa về nỗi đau của người khác">Hài hước nhẹ</option>
+        <option value="Ngắn gọn, súc tích, đi thẳng vào ý chính">Ngắn gọn súc tích</option>
+        <option value="Truyền cảm hứng, tích cực nhưng thực tế, không hứa hẹn quá đà">Truyền cảm hứng</option>
+      </select>
+    </div>
+    <div>
+      <p class="goi-y">Độ dài</p>
+      <select id="doDai">
+        <option value="Vừa phải, đủ ý chính, tránh lan man">Vừa phải</option>
+        <option value="Ngắn, khoảng 100 chữ">Ngắn (~100 chữ)</option>
+        <option value="Khoảng 200–300 chữ">Vừa (~200–300 chữ)</option>
+        <option value="Chi tiết, đầy đủ, có thể dài nếu cần để làm rõ vấn đề">Chi tiết</option>
+      </select>
+    </div>
+  </div>
+
+  <label class="nhan">6. Quy tắc “cao siêu” tự thêm vào prompt (bỏ tick nếu không muốn)</label>
+  <label class="o-tick"><input type="checkbox" id="chkHoiLai" checked> <span>Nếu thiếu thông tin quan trọng, hãy hỏi lại tối đa 3 câu ngắn trước khi làm; nếu đã đủ thì làm luôn, đừng hỏi vòng vo.</span></label>
+  <label class="o-tick"><input type="checkbox" id="chkKhongBia" checked> <span>Không bịa số liệu, nguồn hay sự kiện. Chỗ nào chưa chắc chắn, ghi rõ là chưa chắc chắn.</span></label>
+  <label class="o-tick"><input type="checkbox" id="chkViDu" checked> <span>Cho ít nhất 1 ví dụ cụ thể, gần gũi với người Việt để dễ hiểu và dễ áp dụng.</span></label>
+  <label class="o-tick"><input type="checkbox" id="chkTungBuoc" checked> <span>Trình bày có cấu trúc rõ ràng, từng bước đánh số nếu là hướng dẫn.</span></label>
+  <label class="o-tick"><input type="checkbox" id="chkKiemTra" checked> <span>Trước khi trả lời, tự kiểm tra lại: đúng nhiệm vụ chưa, có lỗi chính tả không, có đoạn nào thừa không — rồi mới xuất kết quả.</span></label>
+
+  <div class="hang-nut">
+    <button class="nut-chinh" id="nutTao">Tạo prompt nâng cấp</button>
+    <button class="nut-phu" id="nutViDu">Điền ví dụ mẫu</button>
+    <button class="nut-phu" id="nutCopy">Copy prompt</button>
+    <button class="nut-phu" id="nutXoa">Xoá hết</button>
+  </div>
+
+  <div id="thongBao"></div>
+
+  <label class="nhan" for="ketQua">Prompt hoàn chỉnh của Anh:</label>
+  <textarea id="ketQua" readonly placeholder="Prompt nâng cấp sẽ hiện ở đây sau khi bấm Tạo prompt nâng cấp..."></textarea>
+
+  <p class="chan-trang">
+    Điểm khác v1: v1 chỉ ghép nguyên văn chữ Anh gõ. V2 có sẵn một “kho kinh nghiệm viết prompt” trong code (mục PHẦN 3) và tự bồi thêm vào prompt đầu ra.<br>
+    Muốn app tự hiểu ý và viết lại prompt bằng AI thật (không theo mẫu cứng) thì cần nối thêm API của Gemini — đó sẽ là v3.
+  </p>
+</div>
+
+<!-- ============================================================
+     PHẦN 3: JAVASCRIPT — bộ não của app
+     Điểm mới của v2 nằm ở KHO_MUC_DICH: kiến thức app tự biết,
+     không phải chữ người dùng gõ vào.
+     ============================================================ -->
+<script>
+  const oVaiTro   = document.getElementById("vaiTro");
+  const oNhiemVu  = document.getElementById("nhiemVu");
+  const oNguCanh  = document.getElementById("nguCanh");
+  const oDinhDang = document.getElementById("dinhDang");
+  const oKetQua   = document.getElementById("ketQua");
+  const oThongBao = document.getElementById("thongBao");
+
+  // Kho yêu cầu riêng cho từng mục đích — app tự thêm vào prompt
+  const KHO_MUC_DICH = {
+    tongQuat: {
+      vaiTroMacDinh: "một chuyên gia giàu kinh nghiệm trong đúng lĩnh vực liên quan đến nhiệm vụ dưới đây, am hiểu bối cảnh Việt Nam",
+      yeuCau: [
+        "Trả lời bằng tiếng Việt, trừ khi nhiệm vụ yêu cầu ngôn ngữ khác",
+        "Ưu tiên thông tin áp dụng được ngay thay vì lý thuyết chung chung"
+      ],
+      dinhDangMacDinh: "Mở đầu bằng câu trả lời/kết quả chính, sau đó mới giải thích thêm nếu cần"
+    },
+    baiFacebook: {
+      vaiTroMacDinh: "một người viết nội dung Facebook giàu kinh nghiệm cho khán giả Việt Nam, hiểu cách giữ chân người đọc trên mạng xã hội",
+      yeuCau: [
+        "2 dòng đầu tiên phải đủ hấp dẫn để người đọc dừng lại (hook rõ ràng, đánh trúng vấn đề của người đọc)",
+        "Mỗi đoạn tối đa 2–3 câu, xuống dòng thoáng để dễ đọc trên điện thoại",
+        "Kết bài có 1 lời kêu gọi hành động nhẹ nhàng (bình luận, lưu bài hoặc chia sẻ)",
+        "Thêm 3–5 hashtag liên quan ở cuối bài, không nhồi nhét hashtag"
+      ],
+      dinhDangMacDinh: "Bài đăng Facebook hoàn chỉnh, sẵn sàng đăng ngay, không kèm lời giải thích bên ngoài bài"
+    },
+    captionBanHang: {
+      vaiTroMacDinh: "một người viết quảng cáo bán hàng online giàu kinh nghiệm tại Việt Nam, hiểu tâm lý khách mua hàng trên Facebook",
+      yeuCau: [
+        "Mở đầu bằng lợi ích hoặc nỗi đau của khách, không mở đầu bằng tên sản phẩm",
+        "Nêu rõ điểm khác biệt và lý do đáng tin (chất liệu, bảo hành, đánh giá của khách...) nếu có trong ngữ cảnh",
+        "Có giá hoặc lời kêu gọi nhắn tin rõ ràng nếu ngữ cảnh cho phép, tuyệt đối không tự bịa giá hay khuyến mãi không có trong ngữ cảnh",
+        "Cho 3 phiên bản caption khác nhau (ngắn – vừa – cảm xúc) để người dùng lựa chọn"
+      ],
+      dinhDangMacDinh: "3 phiên bản caption đánh số 1, 2, 3, mỗi phiên bản cách nhau một dòng trống, kèm gợi ý hashtag ở phiên bản 1"
+    },
+    tomTat: {
+      vaiTroMacDinh: "một chuyên gia tóm tắt và phân tích tài liệu, giỏi chắt lọc ý chính mà không làm mất thông tin quan trọng",
+      yeuCau: [
+        "Phân biệt rõ đâu là ý chính, đâu là chi tiết phụ; không thêm ý kiến ngoài tài liệu",
+        "Giữ nguyên các con số, tên riêng và mốc thời gian quan trọng trong tài liệu gốc",
+        "Nếu tài liệu có điểm mâu thuẫn hoặc chưa rõ, chỉ ra riêng ở cuối bản tóm tắt"
+      ],
+      dinhDangMacDinh: "Mở đầu bằng 1 câu tóm tắt toàn bộ, tiếp theo là các ý chính dạng gạch đầu dòng, cuối cùng là 3 điểm quan trọng nhất cần nhớ"
+    },
+    yTuong: {
+      vaiTroMacDinh: "một cố vấn sáng tạo thực tế, giỏi gợi ý những ý tưởng khả thi với nguồn lực nhỏ tại Việt Nam",
+      yeuCau: [
+        "Đề xuất ít nhất 7 ý tưởng, sắp xếp từ dễ làm nhất đến khó nhất",
+        "Mỗi ý tưởng kèm 1 dòng: cần chuẩn bị gì và mất khoảng bao lâu",
+        "Đánh dấu 1 ý tưởng nên làm trước nhất và giải thích ngắn gọn vì sao"
+      ],
+      dinhDangMacDinh: "Danh sách đánh số, mỗi ý tưởng gồm: tên ý tưởng – cách làm ngắn gọn – mức độ khó (Dễ/Vừa/Khó)"
+    },
+    giaiThich: {
+      vaiTroMacDinh: "một giáo viên kiên nhẫn, chuyên giải thích khái niệm khó cho người tự học bằng ngôn ngữ đời thường",
+      yeuCau: [
+        "Giải thích như nói với người mới bắt đầu: tránh thuật ngữ khó, thuật ngữ nào bắt buộc dùng thì giải thích ngay trong ngoặc",
+        "Dùng một ví dụ đời thường ở Việt Nam để minh họa trước khi đi vào định nghĩa",
+        "Cuối phần giải thích, tóm tắt lại toàn bộ trong tối đa 3 câu và gợi ý 1 bài tập nhỏ để tự kiểm tra mức hiểu"
+      ],
+      dinhDangMacDinh: "Trình bày theo thứ tự: ví dụ đời thường → giải thích dễ hiểu → tóm tắt 3 câu → bài tập nhỏ"
+    }
+  };
+
+  function baoTin(noiDung, laLoi) {
+    oThongBao.textContent = noiDung;
+    oThongBao.style.color = laLoi ? "#dc2626" : "#15803d";
+  }
+
+  // Hàm chính của v2: nhận chữ Anh gõ + lựa chọn, trả về prompt đã nâng cấp
+  function taoPromptNangCap() {
+    const vaiTro   = oVaiTro.value.trim();
+    const nhiemVu  = oNhiemVu.value.trim();
+    const nguCanh  = oNguCanh.value.trim();
+    const dinhDang = oDinhDang.value.trim();
+    const mucDich  = KHO_MUC_DICH[document.getElementById("mucDich").value];
+    const giongVan = document.getElementById("giongVan").value;
+    const doDai    = document.getElementById("doDai").value;
+
+    // Gom các quy tắc Anh đã tick
+    const quyTac = [];
+    if (document.getElementById("chkHoiLai").checked)
+      quyTac.push("Nếu thiếu thông tin thật sự quan trọng để làm tốt nhiệm vụ, hãy hỏi lại tối đa 3 câu ngắn gọn trước khi làm. Nếu thông tin đã đủ, làm luôn và không hỏi thêm.");
+    if (document.getElementById("chkKhongBia").checked)
+      quyTac.push("Không bịa số liệu, nguồn trích dẫn hay sự kiện. Chỗ nào chưa chắc chắn, ghi rõ “chưa chắc chắn” thay vì khẳng định.");
+    if (document.getElementById("chkViDu").checked)
+      quyTac.push("Cho ít nhất 1 ví dụ cụ thể, gần gũi với đời sống Việt Nam để người đọc dễ hình dung và áp dụng ngay.");
+    if (document.getElementById("chkTungBuoc").checked)
+      quyTac.push("Trình bày có cấu trúc rõ ràng; nếu là hướng dẫn thì chia thành các bước đánh số theo đúng thứ tự thực hiện.");
+    if (document.getElementById("chkKiemTra").checked)
+      quyTac.push("Trước khi đưa ra đáp án cuối, hãy tự kiểm tra lại một lượt: đã đúng nhiệm vụ chưa, còn lỗi chính tả hay đoạn thừa nào không, rồi mới xuất kết quả.");
+
+    const cacPhan = [];
+    cacPhan.push("# Vai trò\nBạn là " + (vaiTro ? vaiTro : mucDich.vaiTroMacDinh) + ".");
+    if (nguCanh) cacPhan.push("# Bối cảnh\n" + nguCanh);
+    cacPhan.push("# Nhiệm vụ\n" + nhiemVu);
+    cacPhan.push(
+      "# Yêu cầu chất lượng\n" +
+      mucDich.yeuCau.concat([
+        "Giọng văn: " + giongVan,
+        "Độ dài: " + doDai
+      ]).map(function (d) { return "- " + d; }).join("\n")
+    );
+    if (quyTac.length)
+      cacPhan.push("# Quy tắc làm việc\n" + quyTac.map(function (d) { return "- " + d; }).join("\n"));
+    cacPhan.push("# Định dạng đầu ra\n" + (dinhDang ? dinhDang : mucDich.dinhDangMacDinh));
+
+    return cacPhan.join("\n\n");
+  }
+
+  document.getElementById("nutTao").addEventListener("click", function () {
+    if (!oNhiemVu.value.trim()) {
+      baoTin("Anh gõ giúp em phần Nhiệm vụ trước nhé — chỉ cần 1 câu ngắn cũng được, phần “cao siêu” để app lo.", true);
+      oNhiemVu.focus();
+      return;
+    }
+    oKetQua.value = taoPromptNangCap();
+    baoTin("Đã tạo prompt nâng cấp (" + oKetQua.value.length + " ký tự). Bấm Copy prompt rồi dán vào Gemini/ChatGPT nhé Anh.");
+  });
+
+  document.getElementById("nutViDu").addEventListener("click", function () {
+    oVaiTro.value   = "";
+    oNhiemVu.value  = "viết caption bán áo thun";
+    oNguCanh.value  = "Áo thun cotton dày, giá 250k, khách 20–35 tuổi, shop ở Hà Nội, đang chạy chương trình miễn phí giao hàng tuần này";
+    oDinhDang.value = "";
+    document.getElementById("mucDich").value = "captionBanHang";
+    baoTin("Đã điền ví dụ kiểu “gõ rất ít”. Giờ bấm Tạo prompt nâng cấp và so với chữ Anh vừa gõ nhé.");
+  });
+
+  document.getElementById("nutCopy").addEventListener("click", async function () {
+    if (!oKetQua.value.trim()) {
+      baoTin("Chưa có prompt để copy — Anh bấm Tạo prompt nâng cấp trước nhé.", true);
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(oKetQua.value);
+      baoTin("Đã copy! Anh dán (Ctrl+V) vào Gemini/ChatGPT là dùng được.");
+    } catch (e) {
+      oKetQua.select();
+      baoTin("Trình duyệt chặn copy tự động — em đã bôi chọn sẵn, Anh bấm Ctrl+C nhé.");
+    }
+  });
+
+  document.getElementById("nutXoa").addEventListener("click", function () {
+    oVaiTro.value = oNhiemVu.value = oNguCanh.value = oDinhDang.value = oKetQua.value = "";
+    baoTin("Đã xoá hết. Sẵn sàng làm prompt mới.");
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quản Lý Chi Tiêu v2 — Ngân sách, sửa giao dịch, so sánh tháng</title>
+
+<!-- PHẦN 2: CSS — trang trí -->
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; background: #f0f4f8; color: #1a202c; margin: 0; padding: 24px 16px 48px; }
+  .hop { max-width: 760px; margin: 0 auto; background: #fff; border-radius: 16px; padding: 28px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+  h1 { font-size: 26px; margin: 0 0 6px; }
+  .phien-ban { display: inline-block; background: #dcfce7; color: #15803d; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 3px 10px; margin-bottom: 10px; }
+  .mo-ta { color: #5a6b7f; line-height: 1.55; margin: 0 0 18px; }
+  .tom-tat { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 8px; }
+  @media (max-width: 600px) { .tom-tat { grid-template-columns: 1fr; } }
+  .o-tong { border-radius: 12px; padding: 14px; text-align: center; }
+  .o-tong .nhan { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+  .o-tong .so { font-size: 22px; font-weight: 800; margin-top: 4px; }
+  .o-thu { background: #dcfce7; color: #166534; }
+  .o-chi { background: #fee2e2; color: #991b1b; }
+  .o-du { background: #dbeafe; color: #1e40af; }
+  .so-sanh { text-align: center; color: #475569; font-size: 14px; margin-bottom: 22px; line-height: 1.5; }
+  .so-sanh b.tang { color: #b91c1c; }
+  .so-sanh b.giam { color: #15803d; }
+  h2 { font-size: 18px; margin: 24px 0 10px; }
+  label.nhan { display: block; font-weight: 700; margin: 12px 0 4px; font-size: 14px; }
+  input, select { width: 100%; padding: 10px 12px; border: 1.5px solid #cbd5e0; border-radius: 10px; font: inherit; background: #fff; }
+  input:focus, select:focus { outline: none; border-color: #2563eb; }
+  .luoi-nhap { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 600px) { .luoi-nhap { grid-template-columns: 1fr; } }
+  .hang-nut { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; align-items: center; }
+  button { border: none; border-radius: 10px; padding: 11px 16px; font: inherit; font-weight: 700; cursor: pointer; }
+  .nut-chinh { background: #2563eb; color: #fff; }
+  .nut-phu { background: #e2e8f0; color: #1a202c; }
+  button:hover { opacity: 0.88; }
+  #thongBao { min-height: 22px; margin-top: 12px; color: #15803d; font-weight: 600; }
+  .giao-dich { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
+  .giao-dich .trai { line-height: 1.45; }
+  .giao-dich .danh-muc { font-weight: 700; }
+  .giao-dich .ngay-ghi-chu { font-size: 13px; color: #64748b; }
+  .giao-dich .tien { font-weight: 800; white-space: nowrap; }
+  .giao-dich .tien.thu { color: #15803d; }
+  .giao-dich .tien.chi { color: #b91c1c; }
+  .nut-nho { padding: 6px 10px; font-size: 13px; }
+  .nut-xoa-nho { background: #fee2e2; color: #991b1b; }
+  .nut-sua-nho { background: #dbeafe; color: #1e40af; }
+  .rong { color: #64748b; text-align: center; padding: 16px 0; }
+  .hang-danh-muc { margin-top: 10px; }
+  .hang-danh-muc .ten-ty-le { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 3px; }
+  .thanh-ngoai { height: 12px; background: #e2e8f0; border-radius: 999px; overflow: hidden; }
+  .thanh-trong { height: 100%; background: #2563eb; }
+  .thanh-trong.vang { background: #eab308; }
+  .thanh-trong.do { background: #dc2626; }
+  .canh-bao { font-size: 13px; font-weight: 700; margin-top: 3px; }
+  .canh-bao.vuot { color: #b91c1c; }
+  .canh-bao.sap-het { color: #a16207; }
+  .chan-trang { margin-top: 26px; font-size: 13px; color: #8496ab; line-height: 1.65; }
+</style>
+</head>
+<body>
+
+<!-- PHẦN 1: HTML — khung giao diện -->
+<div class="hop">
+  <span class="phien-ban">V2 — BẢN NÂNG CẤP</span>
+  <h1>Quản Lý Chi Tiêu</h1>
+  <p class="mo-ta">V2 thêm 4 thứ khó hơn v1: <b>hạn mức ngân sách theo danh mục</b> (vượt là báo đỏ), <b>sửa giao dịch đã nhập</b>, <b>tìm kiếm theo ghi chú</b> và <b>so sánh chi tiêu với tháng trước</b>. Dữ liệu cũ từ v1 vẫn dùng được — file Xuất/Nhập giờ lưu cả ngân sách.</p>
+
+  <div class="tom-tat">
+    <div class="o-tong o-thu"><div class="nhan">Tổng thu</div><div class="so" id="tongThu">0 đ</div></div>
+    <div class="o-tong o-chi"><div class="nhan">Tổng chi</div><div class="so" id="tongChi">0 đ</div></div>
+    <div class="o-tong o-du"><div class="nhan">Số dư (thu − chi)</div><div class="so" id="soDu">0 đ</div></div>
+  </div>
+  <div class="so-sanh" id="soSanhThang"></div>
+
+  <h2 id="tieuDeForm">Thêm giao dịch mới</h2>
+  <div class="luoi-nhap">
+    <div>
+      <label class="nhan" for="oNgay">Ngày</label>
+      <input type="date" id="oNgay">
+    </div>
+    <div>
+      <label class="nhan" for="oLoai">Loại</label>
+      <select id="oLoai">
+        <option value="chi">Chi tiêu</option>
+        <option value="thu">Thu nhập</option>
+      </select>
+    </div>
+    <div>
+      <label class="nhan" for="oDanhMuc">Danh mục</label>
+      <select id="oDanhMuc">
+        <option>Ăn uống</option><option>Đi lại</option><option>Nhà ở</option>
+        <option>Mua sắm</option><option>Giải trí</option><option>Học tập</option>
+        <option>Sức khoẻ</option><option>Thu nhập</option><option>Khác</option>
+      </select>
+    </div>
+    <div>
+      <label class="nhan" for="oSoTien">Số tiền (đồng)</label>
+      <input type="number" id="oSoTien" min="1" step="1000" placeholder="Ví dụ: 85000">
+    </div>
+  </div>
+  <label class="nhan" for="oGhiChu">Ghi chú (không bắt buộc)</label>
+  <input type="text" id="oGhiChu" placeholder="Ví dụ: Cơm trưa, đổ xăng, mua sách...">
+  <div class="hang-nut">
+    <button class="nut-chinh" id="nutThem">Thêm giao dịch</button>
+    <button class="nut-phu" id="nutHuySua" style="display:none">Huỷ sửa</button>
+    <button class="nut-phu" id="nutMau">Điền dữ liệu mẫu</button>
+    <button class="nut-phu" id="nutXuat">Xuất file (mang sang máy khác)</button>
+    <label class="nut-phu" style="cursor:pointer; padding:11px 16px; border-radius:10px; font-weight:700">Nhập file
+      <input type="file" id="oNhapFile" accept=".json" style="display:none">
+    </label>
+  </div>
+  <div id="thongBao"></div>
+
+  <h2>Ngân sách tháng này (theo danh mục)</h2>
+  <div class="luoi-nhap">
+    <div>
+      <label class="nhan" for="oNganSachDanhMuc">Danh mục</label>
+      <select id="oNganSachDanhMuc">
+        <option>Ăn uống</option><option>Đi lại</option><option>Nhà ở</option>
+        <option>Mua sắm</option><option>Giải trí</option><option>Học tập</option>
+        <option>Sức khoẻ</option><option>Khác</option>
+      </select>
+    </div>
+    <div>
+      <label class="nhan" for="oNganSachTien">Hạn mức 1 tháng (đồng)</label>
+      <input type="number" id="oNganSachTien" min="1" step="100000" placeholder="Ví dụ: 3000000">
+    </div>
+  </div>
+  <div class="hang-nut">
+    <button class="nut-chinh" id="nutDatNganSach">Đặt hạn mức</button>
+  </div>
+  <div id="danhSachNganSach"></div>
+
+  <h2>Chi tiêu theo danh mục (tháng đang xem)</h2>
+  <div id="bieuDoDanhMuc"></div>
+
+  <h2>Lịch sử giao dịch</h2>
+  <div class="luoi-nhap">
+    <div>
+      <label class="nhan" for="locThang">Xem tháng</label>
+      <input type="month" id="locThang">
+    </div>
+    <div>
+      <label class="nhan" for="locLoai">Lọc loại</label>
+      <select id="locLoai">
+        <option value="tatca">Tất cả</option>
+        <option value="thu">Chỉ thu nhập</option>
+        <option value="chi">Chỉ chi tiêu</option>
+      </select>
+    </div>
+  </div>
+  <label class="nhan" for="locTuKhoa">Tìm kiếm (ghi chú hoặc danh mục)</label>
+  <input type="text" id="locTuKhoa" placeholder="Ví dụ: cơm, xăng, sách...">
+  <div id="danhSach"></div>
+
+  <p class="chan-trang">
+    Bài học mới của v2: <b>trạng thái “đang sửa”</b> (app nhớ mình đang sửa giao dịch nào, nút Thêm biến thành Lưu), <b>tính toán theo thời gian</b> (lùi 1 tháng để so sánh), và <b>ngưỡng cảnh báo</b> (dưới 80% thì xanh, 80–100% thì vàng, vượt 100% thì đỏ).<br>
+    Dữ liệu lưu bằng localStorage trên máy Anh, không gửi lên mạng. File xuất ra giờ chứa cả giao dịch lẫn ngân sách; file cũ của v1 (chỉ có danh sách giao dịch) vẫn nhập được.
+  </p>
+</div>
+
+<!-- PHẦN 3: JAVASCRIPT — bộ não của app -->
+<script>
+  // ---------- Hàm thuần túy ----------
+  function dinhDangTien(so) {
+    return new Intl.NumberFormat("vi-VN").format(so) + " đ";
+  }
+  function thangCua(ngay) { return ngay.slice(0, 7); }
+
+  // Lùi 1 tháng: "2026-10" -> "2026-09", "2026-01" -> "2025-12"
+  function thangTruoc(thang) {
+    const nam = Number(thang.slice(0, 4));
+    const thangSo = Number(thang.slice(5, 7));
+    if (thangSo === 1) return (nam - 1) + "-12";
+    return nam + "-" + String(thangSo - 1).padStart(2, "0");
+  }
+
+  function tinhTong(giaoDich, thang) {
+    let thu = 0, chi = 0;
+    giaoDich.forEach(function (g) {
+      if (thang && thangCua(g.ngay) !== thang) return;
+      if (g.loai === "thu") thu += g.soTien; else chi += g.soTien;
+    });
+    return { thu: thu, chi: chi, du: thu - chi };
+  }
+
+  function gomChiTheoDanhMuc(giaoDich, thang) {
+    const gom = {};
+    giaoDich.forEach(function (g) {
+      if (g.loai !== "chi") return;
+      if (thang && thangCua(g.ngay) !== thang) return;
+      gom[g.danhMuc] = (gom[g.danhMuc] || 0) + g.soTien;
+    });
+    return Object.keys(gom).map(function (dm) {
+      return { danhMuc: dm, soTien: gom[dm] };
+    }).sort(function (a, b) { return b.soTien - a.soTien; });
+  }
+
+  function locGiaoDich(giaoDich, thang, loai, tuKhoa) {
+    const tk = (tuKhoa || "").trim().toLowerCase();
+    return giaoDich.filter(function (g) {
+      const dungThang = !thang || thangCua(g.ngay) === thang;
+      const dungLoai = loai === "tatca" || g.loai === loai;
+      const dungTuKhoa = !tk || (g.danhMuc + " " + (g.ghiChu || "")).toLowerCase().indexOf(tk) !== -1;
+      return dungThang && dungLoai && dungTuKhoa;
+    }).sort(function (a, b) {
+      if (a.ngay === b.ngay) return b.id - a.id;
+      return b.ngay.localeCompare(a.ngay);
+    });
+  }
+
+  // Trạng thái ngân sách: tyLe % đã dùng, và mức cảnh báo
+  function tinhTrangNganSach(chiThucTe, hanMuc) {
+    const tyLe = hanMuc > 0 ? Math.round(chiThucTe / hanMuc * 100) : 0;
+    const trangThai = tyLe > 100 ? "vuot" : (tyLe >= 80 ? "sap-het" : "ok");
+    return { tyLe: tyLe, trangThai: trangThai };
+  }
+
+  // So sánh chi tiêu tháng này với tháng trước
+  function soSanhChi(hienTai, truocDo) {
+    const chenhLech = hienTai - truocDo;
+    if (truocDo === 0) return { chenhLech: chenhLech, tyLe: null, huong: hienTai > 0 ? "tang" : "bang" };
+    return {
+      chenhLech: chenhLech,
+      tyLe: Math.round(Math.abs(chenhLech) / truocDo * 100),
+      huong: chenhLech > 0 ? "tang" : (chenhLech < 0 ? "giam" : "bang")
+    };
+  }
+
+  // ---------- Trạng thái + lưu trữ ----------
+  const KHOA_GD = "chi_tieu_giao_dich_v1";
+  const KHOA_NS = "chi_tieu_ngan_sach_v1";
+  function docJSON(khoa, macDinh) {
+    try { return JSON.parse(localStorage.getItem(khoa) || JSON.stringify(macDinh)); } catch (e) { return macDinh; }
+  }
+  function luuJSON(khoa, giaTri) { localStorage.setItem(khoa, JSON.stringify(giaTri)); }
+
+  let giaoDich = docJSON(KHOA_GD, []);
+  let nganSach = docJSON(KHOA_NS, {}); // dạng { "Ăn uống": 3000000, ... }
+  let dangSuaId = null; // null = đang thêm mới, khác null = đang sửa giao dịch có id đó
+
+  const homNay = new Date();
+  const oNgay = document.getElementById("oNgay");
+  const oLocThang = document.getElementById("locThang");
+  oNgay.value = homNay.toISOString().slice(0, 10);
+  oLocThang.value = homNay.toISOString().slice(0, 7);
+
+  function thoatHTML(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  function baoTin(noiDung) {
+    document.getElementById("thongBao").textContent = noiDung;
+  }
+
+  function veLai() {
+    const thang = oLocThang.value;
+    const loai = document.getElementById("locLoai").value;
+    const tuKhoa = document.getElementById("locTuKhoa").value;
+    const tong = tinhTong(giaoDich, thang);
+    document.getElementById("tongThu").textContent = dinhDangTien(tong.thu);
+    document.getElementById("tongChi").textContent = dinhDangTien(tong.chi);
+    document.getElementById("soDu").textContent = dinhDangTien(tong.du);
+
+    // So sánh với tháng trước
+    const chiTruoc = tinhTong(giaoDich, thangTruoc(thang)).chi;
+    const ss = soSanhChi(tong.chi, chiTruoc);
+    const oSS = document.getElementById("soSanhThang");
+    if (ss.tyLe === null) {
+      oSS.innerHTML = "Tháng trước chưa có chi tiêu nào để so sánh.";
+    } else if (ss.huong === "bang") {
+      oSS.innerHTML = "Chi tiêu tháng này <b>bằng tháng trước</b> (" + dinhDangTien(tong.chi) + ").";
+    } else {
+      const tu = ss.huong === "tang" ? "tăng" : "giảm";
+      oSS.innerHTML = "So với tháng trước (" + dinhDangTien(chiTruoc) + "), chi tiêu tháng này <b class=\"" + ss.huong + "\">" + tu + " " + dinhDangTien(Math.abs(ss.chenhLech)) + " (" + ss.tyLe + "%)</b>.";
+    }
+
+    // Biểu đồ danh mục
+    const dsDanhMuc = gomChiTheoDanhMuc(giaoDich, thang);
+    const oBieuDo = document.getElementById("bieuDoDanhMuc");
+    if (!dsDanhMuc.length) {
+      oBieuDo.innerHTML = '<div class="rong">Chưa có chi tiêu nào trong tháng này.</div>';
+    } else {
+      const lonNhat = dsDanhMuc[0].soTien;
+      oBieuDo.innerHTML = dsDanhMuc.map(function (m) {
+        const tyLe = Math.round(m.soTien / lonNhat * 100);
+        return '<div class="hang-danh-muc"><div class="ten-ty-le"><span>' + thoatHTML(m.danhMuc) +
+          '</span><span>' + dinhDangTien(m.soTien) + '</span></div>' +
+          '<div class="thanh-ngoai"><div class="thanh-trong" style="width:' + tyLe + '%"></div></div></div>';
+      }).join("");
+    }
+
+    // Danh sách ngân sách
+    const oNS = document.getElementById("danhSachNganSach");
+    const cacDanhMucNS = Object.keys(nganSach);
+    if (!cacDanhMucNS.length) {
+      oNS.innerHTML = '<div class="rong">Chưa đặt hạn mức nào. Thử đặt hạn mức Ăn uống 3.000.000 đ cho tháng này.</div>';
+    } else {
+      oNS.innerHTML = cacDanhMucNS.map(function (dm) {
+        const hanMuc = nganSach[dm];
+        const chiThucTe = gomChiTheoDanhMuc(giaoDich, thang).find(function (m) { return m.danhMuc === dm; });
+        const daChi = chiThucTe ? chiThucTe.soTien : 0;
+        const tt = tinhTrangNganSach(daChi, hanMuc);
+        const mauThanh = tt.trangThai === "vuot" ? "do" : (tt.trangThai === "sap-het" ? "vang" : "");
+        let canhBao = "";
+        if (tt.trangThai === "vuot") canhBao = '<div class="canh-bao vuot">Đã vượt hạn mức ' + dinhDangTien(daChi - hanMuc) + "!</div>";
+        else if (tt.trangThai === "sap-het") canhBao = '<div class="canh-bao sap-het">Sắp hết hạn mức (đã dùng ' + tt.tyLe + "%).</div>";
+        return '<div class="hang-danh-muc"><div class="ten-ty-le"><span>' + thoatHTML(dm) +
+          '</span><span>' + dinhDangTien(daChi) + ' / ' + dinhDangTien(hanMuc) + ' (' + tt.tyLe + '%)</span></div>' +
+          '<div class="thanh-ngoai"><div class="thanh-trong ' + mauThanh + '" style="width:' + Math.min(tt.tyLe, 100) + '%"></div></div>' +
+          canhBao +
+          ' <button class="nut-nho nut-xoa-nho" data-xoa-ns="' + thoatHTML(dm) + '">Xoá hạn mức</button></div>';
+      }).join("");
+    }
+
+    // Danh sách giao dịch (có nút Sửa + Xoá)
+    const ds = locGiaoDich(giaoDich, thang, loai, tuKhoa);
+    const oDanhSach = document.getElementById("danhSach");
+    if (!ds.length) {
+      oDanhSach.innerHTML = '<div class="rong">Chưa có giao dịch nào khớp bộ lọc. Thử đổi tháng, loại, từ khoá, hoặc thêm giao dịch mới.</div>';
+      return;
+    }
+    oDanhSach.innerHTML = ds.map(function (g) {
+      return '<div class="giao-dich"><div class="trai"><div class="danh-muc">' + thoatHTML(g.danhMuc) +
+        '</div><div class="ngay-ghi-chu">' + thoatHTML(g.ngay) + (g.ghiChu ? ' • ' + thoatHTML(g.ghiChu) : '') +
+        '</div></div><div><span class="tien ' + g.loai + '">' + (g.loai === "thu" ? "+" : "−") + dinhDangTien(g.soTien) +
+        '</span> <button class="nut-nho nut-sua-nho" data-sua="' + g.id + '">Sửa</button>' +
+        ' <button class="nut-nho nut-xoa-nho" data-xoa="' + g.id + '">Xoá</button></div></div>';
+    }).join("");
+  }
+
+  // Một lần nghe click cho cả danh sách: phân biệt nút Sửa / Xoá / Xoá hạn mức
+  document.getElementById("danhSach").addEventListener("click", function (e) {
+    const nut = e.target;
+    const idSua = nut.getAttribute && nut.getAttribute("data-sua");
+    const idXoa = nut.getAttribute && nut.getAttribute("data-xoa");
+    if (idSua) {
+      const g = giaoDich.find(function (x) { return String(x.id) === idSua; });
+      if (!g) return;
+      dangSuaId = g.id;
+      oNgay.value = g.ngay;
+      document.getElementById("oLoai").value = g.loai;
+      document.getElementById("oDanhMuc").value = g.danhMuc;
+      document.getElementById("oSoTien").value = g.soTien;
+      document.getElementById("oGhiChu").value = g.ghiChu || "";
+      document.getElementById("tieuDeForm").textContent = "Đang sửa giao dịch — bấm Lưu thay đổi khi xong";
+      document.getElementById("nutThem").textContent = "Lưu thay đổi";
+      document.getElementById("nutHuySua").style.display = "";
+      baoTin("Đang sửa giao dịch " + g.danhMuc + " " + dinhDangTien(g.soTien) + ". Sửa xong bấm Lưu thay đổi.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    if (idXoa) {
+      giaoDich = giaoDich.filter(function (g) { return String(g.id) !== idXoa; });
+      luuJSON(KHOA_GD, giaoDich);
+      if (String(dangSuaId) === idXoa) huyCheDoSua();
+      baoTin("Đã xoá giao dịch.");
+      veLai();
+    }
+  });
+
+  document.getElementById("danhSachNganSach").addEventListener("click", function (e) {
+    const dm = e.target && e.target.getAttribute && e.target.getAttribute("data-xoa-ns");
+    if (!dm) return;
+    delete nganSach[dm];
+    luuJSON(KHOA_NS, nganSach);
+    baoTin("Đã xoá hạn mức danh mục " + dm + ".");
+    veLai();
+  });
+
+  function huyCheDoSua() {
+    dangSuaId = null;
+    document.getElementById("tieuDeForm").textContent = "Thêm giao dịch mới";
+    document.getElementById("nutThem").textContent = "Thêm giao dịch";
+    document.getElementById("nutHuySua").style.display = "none";
+    document.getElementById("oSoTien").value = "";
+    document.getElementById("oGhiChu").value = "";
+  }
+  document.getElementById("nutHuySua").addEventListener("click", function () { huyCheDoSua(); baoTin("Đã huỷ sửa, quay lại chế độ thêm mới."); });
+
+  document.getElementById("nutThem").addEventListener("click", function () {
+    const ngay = oNgay.value;
+    const loai = document.getElementById("oLoai").value;
+    const danhMuc = document.getElementById("oDanhMuc").value;
+    const soTien = Number(document.getElementById("oSoTien").value);
+    const ghiChu = document.getElementById("oGhiChu").value.trim();
+    if (!ngay) { baoTin("Anh chọn ngày cho giao dịch nhé."); return; }
+    if (!soTien || soTien <= 0) { baoTin("Anh nhập số tiền lớn hơn 0 nhé."); return; }
+    if (dangSuaId !== null) {
+      // Chế độ sửa: tìm đúng giao dịch cũ và thay giá trị, giữ nguyên id
+      const g = giaoDich.find(function (x) { return x.id === dangSuaId; });
+      if (g) { g.ngay = ngay; g.loai = loai; g.danhMuc = danhMuc; g.soTien = soTien; g.ghiChu = ghiChu; }
+      luuJSON(KHOA_GD, giaoDich);
+      baoTin("Đã lưu thay đổi cho giao dịch.");
+      huyCheDoSua();
+    } else {
+      giaoDich.push({ id: Date.now(), ngay: ngay, loai: loai, danhMuc: danhMuc, soTien: soTien, ghiChu: ghiChu });
+      luuJSON(KHOA_GD, giaoDich);
+      document.getElementById("oSoTien").value = "";
+      document.getElementById("oGhiChu").value = "";
+      baoTin("Đã thêm " + (loai === "thu" ? "thu nhập" : "chi tiêu") + " " + dinhDangTien(soTien) + " — " + danhMuc + ".");
+    }
+    veLai();
+  });
+
+  document.getElementById("nutDatNganSach").addEventListener("click", function () {
+    const dm = document.getElementById("oNganSachDanhMuc").value;
+    const tien = Number(document.getElementById("oNganSachTien").value);
+    if (!tien || tien <= 0) { baoTin("Anh nhập hạn mức lớn hơn 0 nhé."); return; }
+    nganSach[dm] = tien;
+    luuJSON(KHOA_NS, nganSach);
+    document.getElementById("oNganSachTien").value = "";
+    baoTin("Đã đặt hạn mức " + dm + ": " + dinhDangTien(tien) + " / tháng.");
+    veLai();
+  });
+
+  document.getElementById("nutMau").addEventListener("click", function () {
+    giaoDich = [
+      { id: 1, ngay: "2026-10-01", loai: "thu", danhMuc: "Thu nhập", soTien: 12000000, ghiChu: "Lương tháng 10" },
+      { id: 2, ngay: "2026-10-03", loai: "chi", danhMuc: "Ăn uống", soTien: 85000, ghiChu: "Cơm trưa" },
+      { id: 3, ngay: "2026-10-05", loai: "chi", danhMuc: "Đi lại", soTien: 200000, ghiChu: "Đổ xăng" },
+      { id: 4, ngay: "2026-10-10", loai: "chi", danhMuc: "Ăn uống", soTien: 120000, ghiChu: "Đi chợ" },
+      { id: 5, ngay: "2026-10-12", loai: "chi", danhMuc: "Mua sắm", soTien: 450000, ghiChu: "Áo khoác" },
+      { id: 6, ngay: "2026-10-15", loai: "chi", danhMuc: "Học tập", soTien: 180000, ghiChu: "Mua sách AI" },
+      { id: 7, ngay: "2026-09-10", loai: "chi", danhMuc: "Ăn uống", soTien: 150000, ghiChu: "Đi chợ tháng 9" },
+      { id: 8, ngay: "2026-09-12", loai: "chi", danhMuc: "Đi lại", soTien: 100000, ghiChu: "Đổ xăng tháng 9" }
+    ];
+    nganSach = { "Ăn uống": 200000, "Đi lại": 500000 };
+    luuJSON(KHOA_GD, giaoDich);
+    luuJSON(KHOA_NS, nganSach);
+    oLocThang.value = "2026-10";
+    baoTin("Đã điền dữ liệu mẫu v2: có cả tháng 9 để so sánh, và hạn mức Ăn uống 200.000 đ (đã vượt, sẽ báo đỏ) + Đi lại 500.000 đ.");
+    veLai();
+  });
+
+  // Xuất file v2: { giaoDich, nganSach } — vẫn đọc được file v1 cũ khi nhập
+  document.getElementById("nutXuat").addEventListener("click", function () {
+    const noiDung = JSON.stringify({ phienBan: 2, giaoDich: giaoDich, nganSach: nganSach }, null, 2);
+    const blob = new Blob([noiDung], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "chi-tieu-backup.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+    baoTin("Đã xuất " + giaoDich.length + " giao dịch và " + Object.keys(nganSach).length + " hạn mức ra file chi-tieu-backup.json.");
+  });
+
+  document.getElementById("oNhapFile").addEventListener("change", function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const doc = new FileReader();
+    doc.onload = function () {
+      try {
+        const duLieu = JSON.parse(String(doc.result));
+        // Tương thích ngược: file v1 là mảng giao dịch thuần
+        const ds = Array.isArray(duLieu) ? duLieu : duLieu.giaoDich;
+        const ns = Array.isArray(duLieu) ? {} : (duLieu.nganSach || {});
+        if (!Array.isArray(ds)) throw new Error("File không đúng định dạng");
+        const hopLe = ds.every(function (g) {
+          return g && g.ngay && (g.loai === "thu" || g.loai === "chi") && Number(g.soTien) > 0;
+        });
+        if (!hopLe) throw new Error("Có giao dịch không hợp lệ trong file");
+        giaoDich = ds.map(function (g, i) {
+          return { id: g.id || Date.now() + i, ngay: g.ngay, loai: g.loai, danhMuc: g.danhMuc || "Khác", soTien: Number(g.soTien), ghiChu: g.ghiChu || "" };
+        });
+        nganSach = ns;
+        luuJSON(KHOA_GD, giaoDich);
+        luuJSON(KHOA_NS, nganSach);
+        huyCheDoSua();
+        baoTin("Đã nhập " + giaoDich.length + " giao dịch và " + Object.keys(nganSach).length + " hạn mức từ file.");
+        veLai();
+      } catch (err) {
+        baoTin("Nhập file thất bại: file không đúng định dạng dữ liệu chi tiêu. Anh kiểm tra lại file JSON nhé.");
+      }
+      e.target.value = "";
+    };
+    doc.readAsText(file);
+  });
+
+  oLocThang.addEventListener("change", veLai);
+  document.getElementById("locLoai").addEventListener("change", veLai);
+  document.getElementById("locTuKhoa").addEventListener("input", veLai);
+
+  veLai();
+</script>
+</body>
+</html>
