@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trading Bot Demo — Bảng Điều Khiển Chính</title>
+<style>
+  /* Giao diện tối giản, bám theo ảnh bot thật: 2 cột, bảng rõ ràng */
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Arial, sans-serif; background: #eef1f5; color: #222; }
+  header { background: #fff; padding: 14px 20px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+  header h1 { margin: 0; font-size: 20px; }
+  .demo-badge { background: #fff3cd; color: #7a5b00; border: 1px solid #e6c87a; padding: 6px 10px; border-radius: 6px; font-weight: bold; }
+  .price { font-size: 20px; font-weight: bold; }
+  .price small { font-size: 13px; color: #666; font-weight: normal; }
+  .tabs { display: flex; gap: 6px; padding: 12px 20px 0; }
+  .tabs button { border: 1px solid #ccc; border-bottom: none; background: #f7f7f7; padding: 9px 16px; border-radius: 8px 8px 0 0; cursor: pointer; }
+  .tabs button.active { background: #fff; font-weight: bold; }
+  main { padding: 0 20px 20px; }
+  .tab-panel { display: none; background: #fff; border: 1px solid #ddd; padding: 16px; }
+  .tab-panel.active { display: block; }
+  .layout { display: grid; grid-template-columns: 300px 1fr; gap: 16px; }
+  @media (max-width: 800px) { .layout { grid-template-columns: 1fr; } }
+  .card { border: 1px solid #ddd; border-radius: 8px; padding: 14px; margin-bottom: 14px; }
+  .card h2, .card h3 { margin: 0 0 10px; font-size: 16px; }
+  .row { display: flex; justify-content: space-between; padding: 4px 0; }
+  .green { color: #0a7a42; font-weight: bold; }
+  .red { color: #c0392b; font-weight: bold; }
+  button { cursor: pointer; padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; background: #f0f0f0; margin: 3px 3px 3px 0; }
+  button.primary { background: #ffd54a; border-color: #e0b800; }
+  button.danger { background: #f8d7da; border-color: #e0a8ad; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { border-bottom: 1px solid #eee; padding: 7px 6px; text-align: left; }
+  th { background: #f7f7f7; }
+  input[type="number"] { width: 100%; padding: 7px; margin: 4px 0 12px; }
+  label { font-weight: bold; font-size: 14px; }
+  .note { background: #eef6ff; border: 1px solid #bcd6ff; padding: 10px; border-radius: 6px; font-size: 14px; }
+  #log { font-size: 13px; color: #444; white-space: pre-line; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Trading Bot — Bảng Điều Khiển Chính</h1>
+  <div class="demo-badge">BẢN DEMO — TIỀN ẢO, KHÔNG GIAO DỊCH THẬT</div>
+  <div class="price">BTCUSDT: <span id="price">—</span> USDT <small id="priceNote">(giá mô phỏng trong trình duyệt)</small></div>
+</header>
+
+<!-- 3 tab giống ảnh bot thật: Tổng quan / Chỉ báo / Cài đặt -->
+<nav class="tabs">
+  <button class="active" onclick="showTab('overview', this)">Tổng Quan</button>
+  <button onclick="showTab('signals', this)">Chỉ Báo</button>
+  <button onclick="showTab('settings', this)">Cài Đặt</button>
+</nav>
+
+<main>
+  <!-- TAB TỔNG QUAN -->
+  <section id="tab-overview" class="tab-panel active">
+    <div class="layout">
+      <div>
+        <div class="card">
+          <h2>Thông Tin Tài Khoản (ảo)</h2>
+          <div class="row"><span>Tổng Số Dư (USDT):</span><b id="balance">210.58</b></div>
+          <div class="row"><span>Số Dư Khả Dụng:</span><b id="available">210.58</b></div>
+          <div class="row"><span>PNL Chưa Thực Hiện:</span><b id="unrealized">0.00</b></div>
+        </div>
+        <div class="card">
+          <h2>Điều Khiển Giao Dịch</h2>
+          <div>Trạng thái: <b id="status" class="green">Đang chạy</b></div>
+          <!-- Tạm dừng chỉ ngừng mở lệnh mới; lệnh đang mở vẫn được SL/TP quản lý -->
+          <button id="pauseBtn" class="primary" onclick="togglePause()">Tạm dừng Giao dịch</button>
+          <button onclick="applySettings()">Tải lại Cấu hình</button>
+          <button class="danger" onclick="resetDemo()">Đặt lại Demo</button>
+        </div>
+        <div class="card">
+          <h2>Quản Lý Rủi Ro</h2>
+          <label><input type="checkbox" id="useSL" checked> Stoploss</label><br>
+          <label><input type="checkbox" id="useTP" checked> Take profit</label>
+          <p style="font-size:13px;color:#555">Bỏ tick là tắt cơ chế đó. Demo khuyến nghị luôn bật cả 2.</p>
+        </div>
+        <div class="card">
+          <h3>Nhật ký bot</h3>
+          <div id="log">Bot demo đã sẵn sàng. Nhấn Tạm dừng để ngừng mở lệnh mới.</div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <h2>Vị Thế Đang Mở</h2>
+          <table>
+            <thead><tr><th>Mã giao dịch</th><th>Hướng</th><th>Số lượng</th><th>Giá vào</th><th>Giá hiện tại</th><th>Stoploss</th><th>Take profit</th><th>PNL</th><th>Hành động</th></tr></thead>
+            <tbody id="openBody"><tr><td colspan="9">Chưa có vị thế nào.</td></tr></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h2>Lệnh Gần Đây</h2>
+          <table>
+            <thead><tr><th>Thời gian</th><th>Mã giao dịch</th><th>Loại</th><th>Hướng</th><th>Giá</th><th>Số lượng</th><th>Stoploss</th><th>Khung</th><th>Trạng thái</th><th>PNL</th></tr></thead>
+            <tbody id="orderBody"><tr><td colspan="10">Chưa có lệnh nào. Bot sẽ tự mở lệnh khi có tín hiệu ở khung 3m.</td></tr></tbody>
+          </table>
+        </div>
+        <div class="note"><b>Lưu ý an toàn:</b> File này không có ô nhập API key, không gửi tiền đi đâu, không đặt lệnh thật. Muốn nối sàn thật phải làm backend riêng, dùng key chỉ có quyền giao dịch (tắt quyền rút tiền) và chạy testnet trước.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB CHỈ BÁO: tín hiệu từng khung giờ, giống ảnh bot thật -->
+  <section id="tab-signals" class="tab-panel">
+    <div class="card">
+      <h2>Tín Hiệu Giao Dịch (mô phỏng)</h2>
+      <p style="font-size:14px;color:#555">Mỗi khung giờ tính EMA nhanh / EMA chậm riêng. Giá trên EMA chậm thì LONG, dưới thì SHORT, chênh lệch quá nhỏ thì None (chưa đủ điều kiện).</p>
+      <table>
+        <thead><tr><th>Khung</th><th>Thời gian cập nhật</th><th>Tín hiệu</th></tr></thead>
+        <tbody id="signalBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- TAB CÀI ĐẶT: mọi thông số bot dùng đều nằm ở đây, không giấu trong code -->
+  <section id="tab-settings" class="tab-panel">
+    <div class="card" style="max-width:520px">
+      <h2>Cài Đặt Bot Demo</h2>
+      <label>Số dư ban đầu (USDT)</label>
+      <input type="number" id="cfgBalance" value="210.58" step="0.01">
+      <label>Số lượng mỗi lệnh (BTC)</label>
+      <input type="number" id="cfgQty" value="0.011" step="0.001">
+      <label>Stoploss (%) — ví dụ 0.2 nghĩa là cắt lỗ khi giá đi ngược 0.2%</label>
+      <input type="number" id="cfgSL" value="0.2" step="0.1">
+      <label>Take profit (%) — ví dụ 1.2 nghĩa là chốt lời khi giá đi đúng 1.2%</label>
+      <input type="number" id="cfgTP" value="1.2" step="0.1">
+      <label>Tốc độ mỗi nhịp giá (mili giây)</label>
+      <input type="number" id="cfgSpeed" value="1500" step="500">
+      <button class="primary" onclick="applySettings()">Áp dụng &amp; Tải lại Cấu hình</button>
+      <p style="font-size:13px;color:#555">Đổi số xong bấm Áp dụng. Số dư ban đầu chỉ có hiệu lực khi bấm Đặt lại Demo ở tab Tổng Quan.</p>
+    </div>
+  </section>
+</main>
+
+<script>
+// ============ TRẠNG THÁI DEMO (toàn bộ chỉ sống trong trình duyệt) ============
+let balance = 210.58;          // số dư ảo, bắt đầu giống ảnh bot thật
+let initialBalance = 210.58;
+let price = 100000;            // giá khởi điểm mô phỏng, sẽ chạy ngẫu nhiên quanh đó
+let history = [];              // lịch sử giá để tính EMA
+let position = null;           // vị thế đang mở, null nghĩa là chưa có lệnh
+let orders = [];               // lịch sử lệnh, mới nhất lên đầu
+let running = true;            // bot đang chạy hay tạm dừng
+let cooldown = 0;              // sau khi đóng lệnh, chờ vài nhịp mới mở lệnh mới
+let qty = 0.011, slPct = 0.2, tpPct = 1.2, tickMs = 1500, timer = null;
+
+// Tạo sẵn 200 điểm giá quá khứ để EMA tính được ngay, không phải chờ đủ dữ liệu
+for (let i = 0; i < 200; i++) {
+  price = price * (1 + (Math.random() - 0.5) * 0.001);
+  history.push(price);
+}
+price = history[history.length - 1];
+
+// ============ HÀM TIỆN ÍCH ============
+function fmt(n, d) { return Number(n).toFixed(d === undefined ? 2 : d); }
+function now() { return new Date().toLocaleTimeString('vi-VN'); }
+function log(msg) {
+  const el = document.getElementById('log');
+  el.textContent = now() + ' — ' + msg + '\n' + el.textContent;
+}
+// EMA: trung bình trượt hàm mũ, giá mới có trọng số lớn hơn giá cũ
+function ema(values, period) {
+  const k = 2 / (period + 1);
+  let result = values[0];
+  for (let i = 1; i < values.length; i++) result = values[i] * k + result * (1 - k);
+  return result;
+}
+// Tín hiệu của 1 khung giờ: so EMA nhanh với EMA chậm
+function signalFor(fast, slow) {
+  const f = ema(history, fast), s = ema(history, slow);
+  const diff = (f - s) / s * 100;
+  if (diff > 0.05) return 'LONG';
+  if (diff < -0.05) return 'SHORT';
+  return 'None';
+}
+
+// ============ LOGIC BOT: mở lệnh, chạm SL/TP thì đóng ============
+function openPosition(dir) {
+  // Giá cắt lỗ / chốt lời tính từ giá vào, theo % ở Cài đặt
+  const sl = dir === 'LONG' ? price * (1 - slPct / 100) : price * (1 + slPct / 100);
+  const tp = dir === 'LONG' ? price * (1 + tpPct / 100) : price * (1 - tpPct / 100);
+  position = { dir: dir, qty: qty, entry: price, sl: sl, tp: tp };
+  orders.unshift({ time: now(), type: 'OPEN', dir: dir, price: price, qty: qty, sl: sl, tf: '3m', status: 'Đã mở', pnl: '' });
+  log('Mở lệnh ' + dir + ' ' + qty + ' BTC ở ' + fmt(price, 2));
+}
+function closePosition(reason) {
+  // PNL = (giá đóng - giá vào) * khối lượng với LONG, ngược lại với SHORT
+  const pnl = position.dir === 'LONG' ? (price - position.entry) * position.qty : (position.entry - price) * position.qty;
+  balance += pnl;
+  orders.unshift({ time: now(), type: 'CLOSE', dir: position.dir, price: price, qty: position.qty, sl: position.sl, tf: '3m', status: reason, pnl: fmt(pnl, 2) });
+  log('Đóng lệnh (' + reason + ') PNL ' + fmt(pnl, 2) + ' USDT. Số dư mới: ' + fmt(balance, 2));
+  position = null;
+  cooldown = 3; // nghỉ 3 nhịp rồi mới xét lệnh mới, tránh mở-đóng liên tục
+}
+function tick() {
+  // Mỗi nhịp, giá nhích ngẫu nhiên tối đa 0.06% — mô phỏng thị trường, không phải giá thật
+  price = price * (1 + (Math.random() - 0.5) * 0.0012);
+  history.push(price);
+  if (history.length > 500) history.shift();
+  if (cooldown > 0) cooldown--;
+
+  if (position) {
+    // Lệnh đang mở vẫn được SL/TP quản lý kể cả khi bot tạm dừng mở lệnh mới
+    const useSL = document.getElementById('useSL').checked;
+    const useTP = document.getElementById('useTP').checked;
+    if (position.dir === 'LONG') {
+      if (useSL && price <= position.sl) closePosition('Stoploss');
+      else if (useTP && price >= position.tp) closePosition('Take Profit 1');
+    } else {
+      if (useSL && price >= position.sl) closePosition('Stoploss');
+      else if (useTP && price <= position.tp) closePosition('Take Profit 1');
+    }
+  } else if (running && cooldown === 0) {
+    // Chưa có lệnh, bot đang chạy, có tín hiệu khung 3m thì mở lệnh mới
+    const sig = signalFor(9, 21);
+    if (sig !== 'None') openPosition(sig);
+  }
+  render();
+}
+
+// ============ HIỂN THỊ ============
+function render() {
+  document.getElementById('price').textContent = fmt(price, 2);
+  document.getElementById('balance').textContent = fmt(balance, 2);
+  let unreal = 0;
+  if (position) unreal = position.dir === 'LONG' ? (price - position.entry) * position.qty : (position.entry - price) * position.qty;
+  document.getElementById('unrealized').textContent = fmt(unreal, 2);
+  document.getElementById('available').textContent = fmt(balance, 2);
+  document.getElementById('status').textContent = running ? 'Đang chạy' : 'Tạm dừng';
+  document.getElementById('status').className = running ? 'green' : 'red';
+  document.getElementById('pauseBtn').textContent = running ? 'Tạm dừng Giao dịch' : 'Tiếp tục Giao dịch';
+
+  // Bảng vị thế đang mở
+  const ob = document.getElementById('openBody');
+  if (!position) {
+    ob.innerHTML = '<tr><td colspan="9">Chưa có vị thế nào.</td></tr>';
+  } else {
+    ob.innerHTML = '<tr><td>BTCUSDT</td><td>' + position.dir + '</td><td>' + position.qty + '</td><td>' + fmt(position.entry, 2) + '</td><td>' + fmt(price, 2) + '</td><td>' + fmt(position.sl, 2) + '</td><td>' + fmt(position.tp, 2) + '</td><td>' + fmt(unreal, 2) + '</td><td><button onclick="closePosition(\'Đóng tay\')">Đóng</button></td></tr>';
+  }
+  // Bảng lệnh gần đây, tối đa 20 dòng
+  const odb = document.getElementById('orderBody');
+  if (!orders.length) {
+    odb.innerHTML = '<tr><td colspan="10">Chưa có lệnh nào. Bot sẽ tự mở lệnh khi có tín hiệu ở khung 3m.</td></tr>';
+  } else {
+    odb.innerHTML = orders.slice(0, 20).map(function(o) {
+      return '<tr><td>' + o.time + '</td><td>BTCUSDT</td><td>' + o.type + '</td><td>' + o.dir + '</td><td>' + fmt(o.price, 2) + '</td><td>' + o.qty + '</td><td>' + fmt(o.sl, 2) + '</td><td>' + o.tf + '</td><td>' + o.status + '</td><td>' + o.pnl + '</td></tr>';
+    }).join('');
+  }
+  // Bảng tín hiệu từng khung giờ
+  const frames = [['3m', 9, 21], ['5m', 12, 26], ['15m', 20, 50], ['30m', 26, 60], ['1h', 30, 80], ['2h', 40, 100], ['4h', 50, 120]];
+  document.getElementById('signalBody').innerHTML = frames.map(function(f) {
+    const s = signalFor(f[1], f[2]);
+    const cls = s === 'LONG' ? 'green' : (s === 'SHORT' ? 'red' : '');
+    return '<tr><td>' + f[0] + '</td><td>' + now() + '</td><td class="' + cls + '">' + s + '</td></tr>';
+  }).join('');
+}
+function showTab(id, btn) {
+  document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelectorAll('.tabs button').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+function togglePause() {
+  running = !running;
+  log(running ? 'Bot tiếp tục chạy.' : 'Bot tạm dừng mở lệnh mới.');
+  render();
+}
+function applySettings() {
+  qty = parseFloat(document.getElementById('cfgQty').value) || 0.011;
+  slPct = parseFloat(document.getElementById('cfgSL').value) || 0.2;
+  tpPct = parseFloat(document.getElementById('cfgTP').value) || 1.2;
+  tickMs = parseInt(document.getElementById('cfgSpeed').value) || 1500;
+  initialBalance = parseFloat(document.getElementById('cfgBalance').value) || 210.58;
+  clearInterval(timer);
+  timer = setInterval(tick, tickMs);
+  log('Đã tải lại cấu hình: khối lượng ' + qty + ', SL ' + slPct + '%, TP ' + tpPct + '%.');
+}
+function resetDemo() {
+  balance = initialBalance;
+  position = null;
+  orders = [];
+  cooldown = 0;
+  log('Đã đặt lại demo về số dư ' + fmt(balance, 2) + ' USDT.');
+  render();
+}
+// Chạy nhịp đầu tiên và lặp theo tốc độ đã cài
+render();
+timer = setInterval(tick, tickMs);
+</script>
+</body>
+</html>

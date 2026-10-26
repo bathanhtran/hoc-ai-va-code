@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>App Thời Tiết — Gọi API thật, không cần key</title>
+<style>
+  /* Giao diện đơn giản, đọc tốt trên điện thoại */
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 16px; background: #eaf2fb; color: #222; }
+  .app { max-width: 560px; margin: 0 auto; background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  p.mota { color: #555; margin: 0 0 16px; font-size: 14px; }
+  .timkiem { display: flex; gap: 8px; }
+  .timkiem input { flex: 1; padding: 10px 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 10px; }
+  .timkiem button { padding: 10px 16px; font-size: 16px; border: 0; border-radius: 10px; background: #1976d2; color: #fff; cursor: pointer; }
+  .timkiem button:hover { background: #1565c0; }
+  .goiy { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .goiy button { padding: 6px 12px; border: 1px solid #bbdefb; background: #e3f2fd; border-radius: 20px; cursor: pointer; font-size: 14px; }
+  .thongbao { margin-top: 14px; padding: 10px 12px; border-radius: 10px; font-size: 14px; display: none; }
+  .thongbao.loi { display: block; background: #fdecea; color: #b71c1c; }
+  .thongbao.dangtai { display: block; background: #e3f2fd; color: #0d47a1; }
+  .hientai { text-align: center; margin-top: 18px; display: none; }
+  .hientai .nhietdo { font-size: 56px; font-weight: 700; line-height: 1.1; }
+  .hientai .mota-thoitiet { font-size: 20px; margin-top: 2px; }
+  .hientai .diadiem { color: #555; margin-top: 4px; }
+  .chiso { display: flex; justify-content: center; gap: 20px; margin-top: 12px; font-size: 14px; color: #444; }
+  .ngay { margin-top: 20px; display: none; }
+  .ngay h2 { font-size: 17px; margin: 0 0 8px; }
+  .dong-ngay { display: flex; justify-content: space-between; align-items: center; padding: 9px 4px; border-top: 1px solid #eee; font-size: 15px; }
+  .dong-ngay .thu { width: 74px; }
+  .dong-ngay .trangthai { flex: 1; text-align: left; }
+  .dong-ngay .cao-thap { width: 110px; text-align: right; }
+  .nguon { margin-top: 18px; font-size: 12px; color: #888; text-align: center; }
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>🌤️ App Thời Tiết</h1>
+  <p class="mota">Gõ tên thành phố, app gọi API thật của Open-Meteo để lấy thời tiết — miễn phí, không cần key, không cần đăng ký.</p>
+
+  <div class="timkiem">
+    <input id="o-thanhpho" type="text" placeholder="Ví dụ: Hà Nội, Đà Nẵng, Cần Thơ..." value="Hà Nội">
+    <button id="nut-xem">Xem</button>
+  </div>
+  <div class="goiy">
+    <button data-tp="Hà Nội">Hà Nội</button>
+    <button data-tp="Hồ Chí Minh">TP. Hồ Chí Minh</button>
+    <button data-tp="Đà Nẵng">Đà Nẵng</button>
+    <button data-tp="Cần Thơ">Cần Thơ</button>
+  </div>
+
+  <div id="thongbao" class="thongbao"></div>
+
+  <div id="hientai" class="hientai">
+    <div id="nhietdo" class="nhietdo"></div>
+    <div id="mota-thoitiet" class="mota-thoitiet"></div>
+    <div id="diadiem" class="diadiem"></div>
+    <div class="chiso">
+      <span id="camgiac"></span>
+      <span id="doam"></span>
+      <span id="gio"></span>
+    </div>
+  </div>
+
+  <div id="ngay" class="ngay">
+    <h2>Dự báo 7 ngày</h2>
+    <div id="danhsach-ngay"></div>
+  </div>
+
+  <p class="nguon">Dữ liệu: Open-Meteo (miễn phí, không cần key). App vẫn mở được khi mất mạng — chỉ phần dữ liệu là cần mạng.</p>
+</div>
+
+<script>
+// ---- Bảng mã thời tiết WMO -> tiếng Việt + emoji ----
+// Open-Meteo trả về weather_code là số; mình dịch số đó thành chữ dễ hiểu.
+const WMO = {
+  0: ['Trời quang', '☀️'], 1: ['Chủ yếu quang', '🌤️'], 2: ['Mây rải rác', '⛅'],
+  3: ['Nhiều mây', '☁️'], 45: ['Sương mù', '🌫️'], 48: ['Sương mù đóng băng', '🌫️'],
+  51: ['Mưa phùn nhẹ', '🌦️'], 53: ['Mưa phùn', '🌦️'], 55: ['Mưa phùn dày', '🌦️'],
+  56: ['Mưa phùn đóng băng nhẹ', '🌧️'], 57: ['Mưa phùn đóng băng', '🌧️'],
+  61: ['Mưa nhẹ', '🌧️'], 63: ['Mưa vừa', '🌧️'], 65: ['Mưa to', '🌧️'],
+  66: ['Mưa đóng băng nhẹ', '🌧️'], 67: ['Mưa đóng băng', '🌧️'],
+  71: ['Tuyết nhẹ', '🌨️'], 73: ['Tuyết vừa', '🌨️'], 75: ['Tuyết dày', '🌨️'],
+  77: ['Hạt tuyết', '🌨️'], 80: ['Mưa rào nhẹ', '🌦️'], 81: ['Mưa rào vừa', '🌦️'],
+  82: ['Mưa rào to', '⛈️'], 85: ['Mưa tuyết nhẹ', '🌨️'], 86: ['Mưa tuyết dày', '🌨️'],
+  95: ['Dông', '⛈️'], 96: ['Dông kèm mưa đá nhẹ', '⛈️'], 99: ['Dông kèm mưa đá', '⛈️']
+};
+const THU = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+
+// ---- Lấy các phần tử trên trang ----
+const oThanhPho = document.getElementById('o-thanhpho');
+const nutXem = document.getElementById('nut-xem');
+const thongBao = document.getElementById('thongbao');
+const khoiHienTai = document.getElementById('hientai');
+const khoiNgay = document.getElementById('ngay');
+
+// Hiện thông báo (loại 'loi' = đỏ, 'dangtai' = xanh). Truyền '' để ẩn.
+function hienThongBao(noiDung, loai) {
+  thongBao.textContent = noiDung;
+  thongBao.className = 'thongbao' + (loai ? ' ' + loai : '');
+}
+function anKetQuaCu() {
+  khoiHienTai.style.display = 'none';
+  khoiNgay.style.display = 'none';
+}
+
+// ---- Bước 1: đổi tên thành phố -> tọa độ (Geocoding API, không cần key) ----
+async function timToaDo(ten) {
+  const url = 'https://geocoding-api.open-meteo.com/v1/search?name='
+    + encodeURIComponent(ten) + '&count=1&language=vi&format=json';
+  const traLoi = await fetch(url);
+  const duLieu = await traLoi.json();
+  if (duLieu.results && duLieu.results.length > 0) return duLieu.results[0];
+  // API không hiểu tiền tố "TP. " (gõ "TP. Hồ Chí Minh" trả về rỗng),
+  // nên thử lại một lần sau khi bỏ tiền tố đó đi.
+  const tenGon = ten.replace(/^(TP\.?\s+|Thành phố\s+)/i, '').trim();
+  if (tenGon && tenGon !== ten) {
+    const url2 = 'https://geocoding-api.open-meteo.com/v1/search?name='
+      + encodeURIComponent(tenGon) + '&count=1&language=vi&format=json';
+    const traLoi2 = await fetch(url2);
+    const duLieu2 = await traLoi2.json();
+    if (duLieu2.results && duLieu2.results.length > 0) return duLieu2.results[0];
+  }
+  return null; // không tìm thấy thành phố nào
+}
+
+// ---- Bước 2: lấy thời tiết từ tọa độ (Forecast API, không cần key) ----
+async function layThoiTiet(lat, lon) {
+  const url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon
+    + '&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m'
+    + '&daily=weather_code,temperature_2m_max,temperature_2m_min'
+    + '&timezone=auto&forecast_days=7';
+  const traLoi = await fetch(url);
+  return traLoi.json();
+}
+
+// ---- Vẽ phần thời tiết hiện tại ----
+function veHienTai(hienTai, diaDiem) {
+  const [moTa, emoji] = WMO[hienTai.weather_code] || ['Không rõ', '❓'];
+  document.getElementById('nhietdo').textContent = Math.round(hienTai.temperature_2m) + '°C';
+  document.getElementById('mota-thoitiet').textContent = emoji + ' ' + moTa;
+  document.getElementById('diadiem').textContent =
+    diaDiem.name + (diaDiem.admin1 ? ', ' + diaDiem.admin1 : '') + ', ' + diaDiem.country;
+  document.getElementById('camgiac').textContent = 'Cảm giác như ' + Math.round(hienTai.apparent_temperature) + '°C';
+  document.getElementById('doam').textContent = 'Độ ẩm ' + hienTai.relative_humidity_2m + '%';
+  document.getElementById('gio').textContent = 'Gió ' + Math.round(hienTai.wind_speed_10m) + ' km/h';
+  khoiHienTai.style.display = 'block';
+}
+
+// ---- Vẽ dự báo 7 ngày ----
+function veDuBao(ngay) {
+  const danhSach = document.getElementById('danhsach-ngay');
+  danhSach.innerHTML = ''; // xóa dự báo cũ trước khi vẽ mới
+  for (let i = 0; i < ngay.time.length; i++) {
+    const d = new Date(ngay.time[i] + 'T00:00:00'); // 'YYYY-MM-DD' -> ngày, tránh lệch múi giờ
+    const thu = (i === 0 ? 'Hôm nay' : THU[d.getDay()] + ' ' + d.getDate() + '/' + (d.getMonth() + 1));
+    const [moTa, emoji] = WMO[ngay.weather_code[i]] || ['Không rõ', '❓'];
+    const dong = document.createElement('div');
+    dong.className = 'dong-ngay';
+    dong.innerHTML = '<span class="thu">' + thu + '</span>'
+      + '<span class="trangthai">' + emoji + ' ' + moTa + '</span>'
+      + '<span class="cao-thap">' + Math.round(ngay.temperature_2m_max[i]) + '° / '
+      + Math.round(ngay.temperature_2m_min[i]) + '°</span>';
+    danhSach.appendChild(dong);
+  }
+  khoiNgay.style.display = 'block';
+}
+
+// ---- Hàm chính: chạy khi bấm Xem hoặc bấm thành phố gợi ý ----
+async function xemThoiTiet() {
+  const ten = oThanhPho.value.trim();
+  if (!ten) { hienThongBao('Anh gõ tên thành phố trước đã nhé.', 'loi'); return; }
+  anKetQuaCu();
+  hienThongBao('Đang lấy dữ liệu thời tiết...', 'dangtai');
+  try {
+    const diaDiem = await timToaDo(ten);
+    if (!diaDiem) {
+      hienThongBao('Không tìm thấy thành phố "' + ten + '". Anh thử gõ tên khác nhé.', 'loi');
+      return;
+    }
+    const duLieu = await layThoiTiet(diaDiem.latitude, diaDiem.longitude);
+    hienThongBao('', ''); // lấy xong thì ẩn thông báo
+    veHienTai(duLieu.current, diaDiem);
+    veDuBao(duLieu.daily);
+  } catch (loi) {
+    // fetch() ném lỗi khi mất mạng hoặc máy chủ không trả lời được.
+    hienThongBao('Không lấy được dữ liệu — có thể Anh đang mất mạng. Kiểm tra mạng rồi bấm Xem lại nhé.', 'loi');
+  }
+}
+
+nutXem.addEventListener('click', xemThoiTiet);
+oThanhPho.addEventListener('keydown', function (e) { if (e.key === 'Enter') xemThoiTiet(); });
+document.querySelectorAll('.goiy button').forEach(function (nut) {
+  nut.addEventListener('click', function () {
+    oThanhPho.value = nut.getAttribute('data-tp');
+    xemThoiTiet();
+  });
+});
+
+// Mở app là tự xem thời tiết Hà Nội luôn, khỏi cần bấm.
+xemThoiTiet();
+</script>
+</body>
+</html>
